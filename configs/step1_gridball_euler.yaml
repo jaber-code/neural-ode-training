@@ -1,0 +1,37 @@
+# Reproduces train/train_shooting_vardt.py through the generic pipeline.
+name: step1_gridball_euler
+seed: 0
+device: cpu
+
+dataset:
+  name: gridball
+  params:
+    path: data/gridball_contDT.npy
+    state_dim: 2
+    action_dim: 2
+    lo: [0.0, 0.0]
+    hi: [1.0, 1.0]
+
+model:
+  name: mlp
+  params:
+    hidden: [128, 128]
+
+integrator:
+  name: euler
+  params: {}
+
+train:
+  n_sub: 8
+  batch_size: 128
+  epochs: 30
+  lr: 0.001
+  grad_clip: 5.0
+  val_frac: 0.1
+
+eval:
+  analytic_test_dts: [0.1, 0.15, 0.2, 0.3, 0.4]
+  convergence_dt: 0.2
+  convergence_n_subs: [1, 2, 4, 8, 16]
+
+checkpoint: output/vfield_step1_euler.pt

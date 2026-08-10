@@ -1,0 +1,40 @@
+# Template for step 2: point `dataset.params.path` at a real downloaded
+# offline-RL dump (D4RL/Minari-style .hdf5 or .npz) and set `dt` to that
+# env's real control timestep (e.g. MuJoCo-Gym default is 0.008s = dt*frame_skip).
+# No ground-truth dynamics exist for real data, so analytic_test_dts is left
+# empty (the sweep eval auto-skips); the integration self-consistency check
+# (convergence_*) still runs since it needs no ground truth.
+name: step2_mujoco_euler
+seed: 0
+device: cpu
+
+dataset:
+  name: mujoco
+  params:
+    path: data/hopper_medium-v2.hdf5   # TODO: point at a real dataset file
+    dt: 0.008                          # TODO: set to the env's real control dt
+    normalize: true
+
+model:
+  name: mlp
+  params:
+    hidden: [256, 256]
+
+integrator:
+  name: euler
+  params: {}
+
+train:
+  n_sub: 8
+  batch_size: 256
+  epochs: 30
+  lr: 0.001
+  grad_clip: 5.0
+  val_frac: 0.1
+
+eval:
+  convergence_dt: 0.008
+  convergence_n_subs: [1, 2, 4, 8, 16]
+  max_samples: 5000
+
+checkpoint: output/vfield_step2_euler.pt
