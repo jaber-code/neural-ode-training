@@ -1,3 +1,5 @@
+from torch import Tensor
+
 from core.registry import INTEGRATORS
 
 from .base import Integrator
@@ -8,7 +10,7 @@ class RK4Integrator(Integrator):
     """Classic 4th-order Runge-Kutta. 4 model calls per sub-step, most accurate
     per sub-step of the three, at 4x the cost of Euler."""
 
-    def step(self, model, s, a, h):
+    def step(self, model, s: Tensor, a: Tensor, h: Tensor) -> Tensor:
         k1 = model(s, a)
         k2 = model(s + 0.5 * h * k1, a)
         k3 = model(s + 0.5 * h * k2, a)

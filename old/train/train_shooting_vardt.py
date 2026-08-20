@@ -10,7 +10,7 @@ torch.manual_seed(SEED)
 N_SUB = 8          # integration sub-steps during training
 
 # ---- data + split -----------------------------------------------------
-data = torch.tensor(np.load("../../data/gridball_contDT.npy"), dtype=torch.float32)
+data = torch.tensor(np.load("datasets/2d_grid_toy/gridball_contDT.npy"), dtype=torch.float32)
 n = data.shape[0]
 perm = torch.randperm(n)
 n_val = n // 10
@@ -92,5 +92,5 @@ for test_dt in [0.1, 0.15, 0.2, 0.3, 0.4]:
     print(f"dt={test_dt:<4}  overall={err.mean():.4f}  interior={err[~wall].mean():.4f}  "
           f"wall={err[wall].mean():.4f}{tag}")
 
-torch.save(model.state_dict(), "../../output/vfield_shooting_con_dt.pt")
-print("\nsaved ../../output/vfield_shooting_con_dt.pt")
+torch.save(model.state_dict(), "output/vfield_shooting_con_dt.pt")
+print("\nsaved output/vfield_shooting_con_dt.pt")

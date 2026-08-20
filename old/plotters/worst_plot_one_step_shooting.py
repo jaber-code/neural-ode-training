@@ -4,25 +4,27 @@ by INTEGRATING the field over TEST_DT in sub-steps (not one Euler step).
 
   black dot = start   green sq = true next @ TEST_DT   red x = predicted   orange = action
 """
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))  # repo root on sys.path
+
+
 import numpy as np
 import torch
-import torch.nn as nn
 import matplotlib.pyplot as plt
 
-TEST_DT = 0.1
+from core.models.mlp import VectorFieldMLP
+
+
+TEST_DT = 0.3
 N_WORST = 50
 N_SUB   = 8            # MUST match the sub-steps used in training
 
-# architecture MUST match what you trained (2 hidden layers)
-model = nn.Sequential(
-    nn.Linear(4, 128), nn.ReLU(),
-    nn.Linear(128, 128), nn.ReLU(),
-    nn.Linear(128, 2),
-)
-model.load_state_dict(torch.load("output/vfield_shooting_con_dt.pt"))   # the shooting model
+model = VectorFieldMLP(state_dim=2, action_dim=2, hidden=(128, 128))
+model.load_state_dict(torch.load("output/vfield_step1_euler.pt"))   # the shooting model
 model.eval()
 
-data = torch.tensor(np.load("data/gridball_contDT.npy"), dtype=torch.float32)
+data = torch.tensor(np.load("datasets/2d_grid_toy/gridball_contDT.npy"), dtype=torch.float32)
 S1, A = data[:, 0:2], data[:, 2:4]
 
 # integrate the field over TEST_DT in sub-steps (same as training)
@@ -31,7 +33,7 @@ def integrate(s0, a, dt, n_sub=N_SUB):
     s = s0
     with torch.no_grad():
         for _ in range(n_sub):
-            s = s + model(torch.cat([s, a], dim=1)) * h
+                s = s + model(s, a) * h
     return s
 
 dt_col = torch.full((S1.shape[0], 1), TEST_DT)

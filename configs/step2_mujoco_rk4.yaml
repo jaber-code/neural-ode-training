@@ -21,7 +21,7 @@ model:
     hidden: [256, 256]
 
 integrator:
-  name: euler
+  name: rk4
   params: {}
 
 train:
@@ -37,4 +37,4 @@ eval:
   convergence_n_subs: [1, 2, 4, 8, 16]
   max_samples: 5000
 
-checkpoint: output/vfield_hopper_euler.pt
+checkpoint: output/vfield_hopper_rk4.pt

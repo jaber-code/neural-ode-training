@@ -34,8 +34,8 @@ DT = rng.uniform(DT_MIN, DT_MAX, size=(N, 1))         # <-- per-row random dt
 S2 = step(S1, A, DT)                                  # next states (uses each row's dt)
 
 data = np.concatenate([S1, A, DT, S2], axis=1)        # DT is already (N,1)
-np.save("../../data/gridball_contDT.npy", data)
-np.savetxt("../../data/gridball_contDT.csv", data, delimiter=",",
+np.save("datasets/2d_grid_toy/gridball_contDT.npy", data)
+np.savetxt("datasets/2d_grid_toy/gridball_contDT.csv", data, delimiter=",",
            header="s1x,s1y,ax,ay,dt,s2x,s2y", comments="")
 
 # --- quick sanity check ------------------------------------------------

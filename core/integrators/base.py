@@ -10,14 +10,16 @@ so Euler/RK4/etc. differ only in `step`.
 
 from abc import ABC, abstractmethod
 
+from torch import Tensor
+
 
 class Integrator(ABC):
     @abstractmethod
-    def step(self, model, s, a, h):
+    def step(self, model, s: Tensor, a: Tensor, h: Tensor) -> Tensor:
         """Advance state s by one sub-step of size h under model(s, a). h and s are
         tensors of matching batch dimension; h is (B, 1), s is (B, state_dim)."""
 
-    def integrate(self, model, s0, a, dt, n_sub: int):
+    def integrate(self, model, s0: Tensor, a: Tensor, dt: Tensor, n_sub: int) -> Tensor:
         """Shooting rollout: split dt into n_sub sub-steps, chain `step` that many
         times, return the endpoint. dt is (B, 1); s0/a are (B, state_dim)/(B, action_dim)."""
         h = dt / n_sub

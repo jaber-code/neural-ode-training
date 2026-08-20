@@ -26,6 +26,18 @@ from core.config import load_config
 from core.engine import evaluate_analytic_sweep, evaluate_convergence, split_dataset, train_loop
 from core.registry import DATASETS, INTEGRATORS, MODELS
 
+import gymnasium as gym
+
+"""env = gym.make("Hopper-v4")
+print(env.unwrapped.model)
+
+import gymnasium
+from pathlib import Path
+
+root = Path(gymnasium.__file__).parent
+
+for p in root.rglob("*hopper*.xml"):
+    print(p)"""
 
 def main():
     parser = argparse.ArgumentParser()

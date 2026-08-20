@@ -24,6 +24,7 @@ class Registry:
         return deco
 
     def build(self, name: str, **kwargs: Any):
+        print(f"Building {self.kind} '{name}' with args: {kwargs}")
         if name not in self._items:
             raise KeyError(f"unknown {self.kind} '{name}'. available: {self.names()}")
         return self._items[name](**kwargs)

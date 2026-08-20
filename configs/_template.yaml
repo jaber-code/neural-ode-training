@@ -1,0 +1,33 @@
+
+name: CHANGE_ME               
+seed: 0
+device: cpu                   
+
+dataset:
+  name: CHANGE_ME              
+  params: {}                 
+
+model:
+  name: mlp                    
+  params:
+    hidden: [128, 128]         
+
+integrator:
+  name: CHANGE_ME              
+  params: {}                   
+
+train:
+  n_sub: 8                     
+  batch_size: 128
+  epochs: 30
+  lr: 0.001
+  grad_clip: 5.0
+  val_frac: 0.1                
+
+eval:
+  analytic_test_dts: []
+  convergence_dt: null
+  convergence_n_subs: [1, 2, 4, 8, 16]
+  max_samples: 5000
+
+checkpoint: output/CHANGE_ME.pt
