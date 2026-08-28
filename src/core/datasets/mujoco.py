@@ -18,6 +18,7 @@ the base-class default (None) and the dt-sweep eval is skipped automatically.
 """
 
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import torch
@@ -26,9 +27,10 @@ from core.registry import DATASETS
 
 from .base import TransitionDataset
 
-
 @DATASETS.register("mujoco")
 class MuJoCoDataset(TransitionDataset):
+    supports_windows = True  # rows are one recorded trajectory in order (episode-boundary rows already dropped)
+
     def __init__(
         self,
         path: str,
@@ -40,7 +42,8 @@ class MuJoCoDataset(TransitionDataset):
         timeout_key: str = "timeouts",
         normalize: bool = False,
     ):
-        arrays = self._load_arrays(Path(path))
+        keys = [obs_key, action_key, next_obs_key, terminal_key, timeout_key]
+        arrays = self._load_arrays(Path(path), keys)
         obs = np.asarray(arrays[obs_key], dtype=np.float32)
         act = np.asarray(arrays[action_key], dtype=np.float32)
 
@@ -74,9 +77,14 @@ class MuJoCoDataset(TransitionDataset):
         self.s2 = torch.from_numpy(next_obs)
 
     @staticmethod
-    def _load_arrays(path: Path) -> dict:
+    def _load_arrays(path: Path, keys: list[str]) -> dict:
+        """Fetch only the named top-level datasets. D4RL-style files also
+        contain nested groups (infos/qpos, metadata/policy/...) that aren't
+        plain arrays and aren't needed here, so we look up each key
+        directly instead of iterating every entry in the file."""
         if path.suffix == ".npz":
-            return dict(np.load(path))
+            with np.load(path) as npz:
+                return {k: npz[k] for k in keys if k in npz}
         if path.suffix in (".hdf5", ".h5"):
             try:
                 import h5py
@@ -85,7 +93,10 @@ class MuJoCoDataset(TransitionDataset):
                     "reading a .hdf5 MuJoCo dataset needs h5py: pip install h5py"
                 ) from e
             with h5py.File(path, "r") as f:
-                return {k: f[k][:] for k in f.keys()}
+                # f[k] is typed as Dataset | Group | Datatype; every key we
+                # ask for is a plain array in these files, never a group or
+                # a named datatype, so this narrows it back to Dataset.
+                return {k: cast(h5py.Dataset, f[k])[:] for k in keys if k in f}
         raise ValueError(f"unsupported MuJoCo dataset file type: {path.suffix}")
 
     def __len__(self) -> int:

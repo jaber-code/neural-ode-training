@@ -11,6 +11,14 @@ input/output layers.
 dynamics (e.g. clip(s1 + a*dt)) can override it to enable the dt-sweep
 ground-truth check in core.engine. Real datasets have no such ground
 truth, so the default (return None) makes that check silently skip.
+
+`supports_windows` is also optional, for multi-step rollout training
+(core.trainers.multi_step): it's only true for sources whose rows are a
+single recorded trajectory in order, where row i+1 genuinely follows row i
+(e.g. mujoco). Datasets of i.i.d. sampled transitions (e.g. gridball, where
+every row is an independently random state/action/dt) have no such
+adjacency, so the default (False) makes multi-step training refuse them
+with a clear error instead of silently training on nonsense windows.
 """
 
 from abc import ABC, abstractmethod
@@ -23,6 +31,7 @@ from torch.utils.data import Dataset
 class TransitionDataset(Dataset, ABC):
     state_dim: int
     action_dim: int
+    supports_windows: bool = False
 
     @abstractmethod
     def __len__(self) -> int: ...

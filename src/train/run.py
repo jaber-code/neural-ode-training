@@ -22,22 +22,11 @@ import torch
 import core.datasets  # noqa: F401  (import registers implementations)
 import core.integrators  # noqa: F401
 import core.models  # noqa: F401
+import core.trainers  # noqa: F401
 from core.config import load_config
-from core.engine import evaluate_analytic_sweep, evaluate_convergence, split_dataset, train_loop
-from core.registry import DATASETS, INTEGRATORS, MODELS
+from core.engine import evaluate_analytic_sweep, evaluate_convergence, split_dataset
+from core.registry import DATASETS, INTEGRATORS, MODELS, TRAINERS
 
-import gymnasium as gym
-
-"""env = gym.make("Hopper-v4")
-print(env.unwrapped.model)
-
-import gymnasium
-from pathlib import Path
-
-root = Path(gymnasium.__file__).parent
-
-for p in root.rglob("*hopper*.xml"):
-    print(p)"""
 
 def main():
     parser = argparse.ArgumentParser()
@@ -53,16 +42,19 @@ def main():
         cfg.model.name, state_dim=dataset.state_dim, action_dim=dataset.action_dim, **cfg.model.params
     )
     integrator = INTEGRATORS.build(cfg.integrator.name, **cfg.integrator.params)
-    train_ds, val_ds = split_dataset(dataset, cfg.train.val_frac, cfg.seed)
+    trainer = TRAINERS.build(cfg.trainer.name, **cfg.trainer.params)
+
+    prepared = trainer.prepare_dataset(dataset)  # identity for single_step; windows the trajectory for multi_step
+    train_ds, val_ds = split_dataset(prepared, cfg.train.val_frac, cfg.seed)
 
     print(
         f"[{cfg.name}]  dataset={cfg.dataset.name} (n={len(dataset)}, "
         f"state_dim={dataset.state_dim}, action_dim={dataset.action_dim})  "
-        f"model={cfg.model.name}  integrator={cfg.integrator.name}  "
+        f"model={cfg.model.name}  integrator={cfg.integrator.name}  trainer={cfg.trainer.name}  "
         f"train/val={len(train_ds)}/{len(val_ds)}"
     )
 
-    train_loop(model, integrator, train_ds, val_ds, cfg.train, device=cfg.device)
+    trainer.train_loop(model, integrator, train_ds, val_ds, cfg.train, device=cfg.device)
 
     if cfg.eval.analytic_test_dts:
         evaluate_analytic_sweep(

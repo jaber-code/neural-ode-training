@@ -68,5 +68,5 @@ for k in range(N_WORST,len(axes)): axes[k].axis("off")
 fig.suptitle(f"Top {N_WORST} worst (SHOOTING model, integrated) at dt={TEST_DT}\n"
              "black=start  green=true  red=predicted  orange=action",fontsize=12,y=1.01)
 fig.tight_layout()
-fig.savefig(f"worst50_shooting_condt{TEST_DT}.png", dpi=120, bbox_inches="tight")
-print(f"saved worst50_shooting_condt{TEST_DT}.png")
+fig.savefig(f"output/legacy_plots/worst50_shooting_condt{TEST_DT}.png", dpi=120, bbox_inches="tight")
+print(f"saved output/legacy_plots/worst50_shooting_condt{TEST_DT}.png")

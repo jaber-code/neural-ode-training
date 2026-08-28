@@ -36,6 +36,8 @@ class EvalConfig:
     convergence_dt: Optional[float] = None                          # skipped if None
     convergence_n_subs: list[int] = field(default_factory=list)
     max_samples: Optional[int] = 5000                               # cap eval batch size on large datasets
+    perturb_action: bool = False
+
 
 
 @dataclass
@@ -46,6 +48,7 @@ class ExperimentConfig:
     integrator: ComponentConfig
     seed: int = 0
     device: str = "cpu"
+    trainer: ComponentConfig = field(default_factory=lambda: ComponentConfig("single_step"))
     train: TrainConfig = field(default_factory=TrainConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
     checkpoint: str = "output/model.pt"
@@ -61,6 +64,7 @@ def load_config(path: str) -> ExperimentConfig:
         integrator=ComponentConfig.from_dict(raw["integrator"]),
         seed=raw.get("seed", 0),
         device=raw.get("device", "cpu"),
+        trainer=ComponentConfig.from_dict(raw["trainer"]) if "trainer" in raw else ComponentConfig("single_step"),
         train=TrainConfig(**raw.get("train", {})),
         eval=EvalConfig(**raw.get("eval", {})),
         checkpoint=raw.get("checkpoint", "output/model.pt"),

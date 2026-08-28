@@ -22,10 +22,10 @@ model = nn.Sequential(
     nn.Linear(128, 128), nn.ReLU(),   # <-- uncomment these
     nn.Linear(128, 2),
 )
-model.load_state_dict(torch.load("../../output/vfield_onestep.pt"))
+model.load_state_dict(torch.load("../../../output/vfield_onestep.pt"))
 model.eval()
 
-data = torch.tensor(np.load("../../data/gridball_fixedDT_0.2.npy"), dtype=torch.float32)
+data = torch.tensor(np.load("../../../data/gridball_fixedDT_0.2.npy"), dtype=torch.float32)
 S1, A = data[:, 0:2], data[:, 2:4]
 
 with torch.no_grad():
@@ -61,5 +61,5 @@ for k in range(N_WORST,len(axes)): axes[k].axis("off")
 fig.suptitle(f"Top {N_WORST} worst predictions at dt={TEST_DT} (trained at 0.2)\n"
              "black=start  green=true  red=predicted  orange=action",fontsize=12,y=1.01)
 fig.tight_layout()
-fig.savefig(f"../../worst50_one_step_dt_{TEST_DT}.png", dpi=120, bbox_inches="tight")
-print(f"saved ../../worst50_one_step_dt_{TEST_DT}.png")
+fig.savefig(f"../../../output/legacy_plots/worst50_one_step_dt_{TEST_DT}.png", dpi=120, bbox_inches="tight")
+print(f"saved ../../../output/legacy_plots/worst50_one_step_dt_{TEST_DT}.png")

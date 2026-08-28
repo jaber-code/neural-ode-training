@@ -28,8 +28,8 @@ A  = rng.uniform(-A_MAX, A_MAX, size=(N, 2))       # velocity commands
 S2 = step(S1, A, DT)                               # next states
 
 data = np.concatenate([S1, A, np.full((N, 1), DT), S2], axis=1)
-np.save(f"../../data/gridball_fixedDT_{DT}.npy", data)
-np.savetxt(f"../../data/gridball_fixedDT_{DT}.csv", data, delimiter=",", header="s1x,s1y,ax,ay,dt,s2x,s2y", comments="")
+np.save(f"../../../data/gridball_fixedDT_{DT}.npy", data)
+np.savetxt(f"../../../data/gridball_fixedDT_{DT}.csv", data, delimiter=",", header="s1x,s1y,ax,ay,dt,s2x,s2y", comments="")
 
 # --- quick sanity check ------------------------------------------------
 wall = np.any((S1 + A*DT < BOT_LEFT) | (S1 + A*DT > HIGH_TOP), axis=1)

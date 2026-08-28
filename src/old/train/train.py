@@ -25,7 +25,7 @@ DT_DATA = 0.2
 N_SUB   = 8            # integration sub-steps during training (h = dt/N_SUB = 0.025)
 
 # ---- data + split -----------------------------------------------------
-data = torch.tensor(np.load("../../gridball.npy"), dtype=torch.float32)
+data = torch.tensor(np.load("../../../gridball.npy"), dtype=torch.float32)
 n = data.shape[0]; perm = torch.randperm(n); nv = n//10
 va, tr = perm[:nv], perm[nv:]
 def get(idx):
@@ -111,9 +111,9 @@ with torch.no_grad():
     act=torch.tensor([[2.0,0.0]]).repeat(pos.shape[0],1)
     vl=model(torch.cat([pos,act],1)).numpy()
     vt=act.numpy().copy(); vt[pos[:,0].numpy()>=1.0,0]=0.0
-np.savetxt("../../field_compare_shooting.csv",
+np.savetxt("../../../field_compare_shooting.csv",
            np.concatenate([pos.numpy(),vl,vt],1), delimiter=",",
            header="px,py,vlearned_x,vlearned_y,vtrue_x,vtrue_y", comments="")
 print("\n4. saved field_compare_shooting.csv")
-torch.save(model.state_dict(),"../../vfield_shooting.pt")
+torch.save(model.state_dict(),"../../../vfield_shooting.pt")
 print("saved vfield_shooting.pt")

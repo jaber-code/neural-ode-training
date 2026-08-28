@@ -22,7 +22,7 @@ torch.manual_seed(SEED)
 # Load data and split into train / validation
 #   each row: s1x s1y  ax ay  dt  s2x s2y
 # ----------------------------------------------------------------------
-data = torch.tensor(np.load("../../data/gridball_vardt.npy"), dtype=torch.float32)
+data = torch.tensor(np.load("../../../data/gridball_vardt.npy"), dtype=torch.float32)
 
 n = data.shape[0]
 perm = torch.randperm(n)
@@ -137,5 +137,5 @@ with torch.no_grad():
 # ----------------------------------------------------------------------
 # Save
 # ----------------------------------------------------------------------
-torch.save(model.state_dict(), "../../output/vfield_onestep.pt")
-print("saved ../../output/vfield_onestep.pt")
+torch.save(model.state_dict(), "../../../output/vfield_onestep.pt")
+print("saved ../../../output/vfield_onestep.pt")

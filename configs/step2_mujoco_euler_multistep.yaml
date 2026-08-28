@@ -1,0 +1,41 @@
+name: step2_mujoco_multistep
+seed: 0
+device: cpu
+
+dataset:
+  name: mujoco
+  params:
+    path: datasets/mujoco/hopper_medium-v2.hdf5
+    dt: 0.008
+    normalize: true
+
+model:
+  name: mlp
+  params:
+    hidden: [256, 256]
+
+integrator:
+  name: euler
+  params: {}
+
+trainer:
+  name: multi_step
+  params:
+    k: 5
+
+train:
+  n_sub: 8
+  batch_size: 1024
+  epochs: 30
+  lr: 0.001
+  grad_clip: 5.0
+  val_frac: 0.1
+
+eval:
+  convergence_dt: 0.008
+  convergence_n_subs: [1, 2, 4, 8, 16]
+  max_samples: 5000
+  perturb_action: True
+
+
+checkpoint: output/vfield_hopper_multistep.pt
