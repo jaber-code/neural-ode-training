@@ -175,14 +175,20 @@ def main():
 
     out_dir = Path("output/renders")
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_gif = unique_path(out_dir / f"{cfg.name}_rollout.gif")
-    out_error_png = unique_path(out_dir / f"{cfg.name}_error.png")
+    # named after the checkpoint (not cfg.name) so a render is traceable back to the
+    # exact trained run it came from -- train/run.py suffixes checkpoints with a run id
+    checkpoint_stem = Path(cfg.checkpoint).stem
+    out_gif = unique_path(out_dir / f"{checkpoint_stem}_rollout.gif")
+    out_error_png = unique_path(out_dir / f"{checkpoint_stem}_error.png")
 
     dataset = cast(MuJoCoDataset, DATASETS.build(cfg.dataset.name, **cfg.dataset.params))
     model = MODELS.build(cfg.model.name, state_dim=dataset.state_dim, action_dim=dataset.action_dim, **cfg.model.params)
     integrator = INTEGRATORS.build(cfg.integrator.name, **cfg.integrator.params)
 
-    model.load_state_dict(torch.load(cfg.checkpoint))
+    # fall back to CPU when the config says "cuda" but this machine has no working
+    # CUDA build of torch (e.g. a config written for the cluster, run locally)
+    device = cfg.device if torch.cuda.is_available() else "cpu"
+    model.load_state_dict(torch.load(cfg.checkpoint, map_location=device))
     model.eval()
 
     start, end = find_contiguous_window(dataset, START_IDX, N_STEPS)

@@ -42,17 +42,23 @@ class Integrator(ABC):
         s = s0
         states = [s]
         original_a = a
+        i = 1
         for _ in range(n_sub):
+
             s = self.step(model, s, a, h)
-            if perturb_action:
+            if perturb_action and i >= n_sub//2:
                 a = self._peturb_action(original_a)
+            else:   
+                a = original_a
+            i += 1
             states.append(s)
         return states
 
     def _peturb_action(self, a: Tensor) -> Tensor:
         #random_peturbations = torch.rand(a.size()) - 0.5
-        x = 0.14
-        random_peturbations = torch.tensor([x, 0.0, 0.0])
+        x = 0.5
+        random_peturbations = torch.tensor([-0.25, 0.0, 0.25])
         print("random_peturbations: ", random_peturbations)
         a = a + random_peturbations
-        return a
+        return torch.clamp(a, -1.0, 1.0)
+

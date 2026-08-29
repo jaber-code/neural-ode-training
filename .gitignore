@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Type checker cache
+.mypy_cache/
+.pyright/
+
+# ML / data artifacts
+*.pt
+*.pth
+*.ckpt
+*.npy
+*.npz
+*.hdf5
+*.h5
+datasets/
+output/
+
+# Logs
+*.log

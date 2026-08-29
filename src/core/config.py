@@ -26,8 +26,13 @@ class TrainConfig:
     batch_size: int = 128
     epochs: int = 30
     lr: float = 1e-3
+    weight_decay: float = 0.0
     grad_clip: float = 5.0
     val_frac: float = 0.1
+    scheduler: str = "none"                             # "none" | "step" | "cosine" -- picks which params dict below is used
+    step_scheduler_params: dict[str, Any] = field(default_factory=lambda: {"step_size": 10, "gamma": 0.5})
+    cosine_scheduler_params: dict[str, Any] = field(default_factory=lambda: {"T_max": 30, "eta_min": 0.0})
+    distributed: bool = False   # true = multi-GPU DDP; needs `torchrun --nproc_per_node=N`, see core/distributed.py
 
 
 @dataclass
