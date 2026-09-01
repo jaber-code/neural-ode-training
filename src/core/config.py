@@ -41,7 +41,8 @@ class EvalConfig:
     convergence_dt: Optional[float] = None                          # skipped if None
     convergence_n_subs: list[int] = field(default_factory=list)
     max_samples: Optional[int] = 5000                               # cap eval batch size on large datasets
-    perturb_action: bool = False
+    perturb_action: bool = False   # master switch: False always forces "none" regardless of
+                                    # core.integrators.base.PERTURBATION; True lets that string pick one of the 4
 
 
 

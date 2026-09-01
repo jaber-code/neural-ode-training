@@ -28,7 +28,7 @@ import core.integrators  # noqa: F401
 import core.models  # noqa: F401
 import core.trainers  # noqa: F401
 from core.config import load_config
-from core.distributed import is_main_process
+from core.distributed import dist_info, is_main_process
 from core.engine import evaluate_analytic_sweep, evaluate_convergence, split_dataset
 from core.registry import DATASETS, INTEGRATORS, MODELS, TRAINERS
 
@@ -47,13 +47,23 @@ def main():
     cfg = load_config(args.config)
     run_id = _resolve_run_id()
 
+    # printed by every process, not just rank 0 -- the point is to see whether each
+    # one gets a different GPU view (answers "is it actually using a second GPU?")
+    rank, world_size, local_rank = dist_info(cfg.train.distributed)
+    print(
+        f"[rank {rank}/{world_size}]  cuda available: {torch.cuda.is_available()}   "
+        f"visible gpu count: {torch.cuda.device_count()}   "
+        f"CUDA_VISIBLE_DEVICES={os.environ.get('CUDA_VISIBLE_DEVICES', '<unset>')}"
+    )
+
     torch.manual_seed(cfg.seed)
     np.random.seed(cfg.seed)
 
     dataset = DATASETS.build(cfg.dataset.name, **cfg.dataset.params)
-    model = MODELS.build(
-        cfg.model.name, state_dim=dataset.state_dim, action_dim=dataset.action_dim, **cfg.model.params
-    )
+    model_kwargs = dict(state_dim=dataset.state_dim, action_dim=dataset.action_dim, **cfg.model.params)
+    if hasattr(dataset, "frame_shape"):  # pixel datasets (e.g. atari_pong) expose this; vector ones don't
+        model_kwargs["frame_shape"] = dataset.frame_shape
+    model = MODELS.build(cfg.model.name, **model_kwargs)
     integrator = INTEGRATORS.build(cfg.integrator.name, **cfg.integrator.params)
     trainer = TRAINERS.build(cfg.trainer.name, **cfg.trainer.params)
 
@@ -64,11 +74,12 @@ def main():
         print(f"run id: {run_id}")
         print("config:")
         print(yaml.dump(dataclasses.asdict(cfg), sort_keys=False, default_flow_style=False))
+        per_gpu = f"  (~{len(train_ds) // world_size}/{len(val_ds) // world_size} per GPU)" if world_size > 1 else ""
         print(
             f"[{cfg.name}]  dataset={cfg.dataset.name} (n={len(dataset)}, "
             f"state_dim={dataset.state_dim}, action_dim={dataset.action_dim})  "
             f"model={cfg.model.name}  integrator={cfg.integrator.name}  trainer={cfg.trainer.name}  "
-            f"train/val={len(train_ds)}/{len(val_ds)}"
+            f"train/val={len(train_ds)}/{len(val_ds)}{per_gpu}"
         )
 
     # every process (1 of them, unless cfg.train.distributed launched several via torchrun)

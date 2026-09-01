@@ -48,19 +48,26 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw
 
 import core.datasets  # noqa: F401
 import core.integrators  # noqa: F401
+import core.integrators.base as integrator_base  # module import (not `from ... import PERTURBATION`) --
+                                                  # need to mutate the actual attribute rollout() reads,
+                                                  # not a separate local copy of the name
 import core.models  # noqa: F401
 from core.config import load_config
 from core.datasets.mujoco import MuJoCoDataset
 from core.registry import DATASETS, INTEGRATORS, MODELS
 
-DEFAULT_CONFIG_PATH = "configs/step2_mujoco_euler_multistep.yaml"
-START_IDX = 500            # row to start the window at (skip the very first few resets)
-N_STEPS = 150               # rollout length in control steps
+DEFAULT_CONFIG_PATH = "configs/step2_mujoco_rk4_multistep.yaml"
+START_IDX = 1500          # real fall window: ends at row 679239 (z=0.705, 0.005 above the
+                             # unhealthy threshold), the closest this filtered dataset has to
+                             # an actual fall -- see the row-679239 scan from earlier in chat
+N_STEPS = 200               # rollout length in control steps
 FPS = 25                    # env's real control rate is 1/dt = 125Hz; slowed down for visibility
+# PERTURBATION itself is imported from core.integrators.base -- that's the single
+# place it's set, so a render always labels the gif with whatever actually ran
 
 # Hopper-v4's own termination criterion (env.unwrapped._healthy_z_range /
 # _healthy_angle_range) -- "fell over" means leaving these, not a number we chose.
@@ -173,6 +180,14 @@ def main():
     args = parser.parse_args()
     cfg = load_config(args.config)
 
+    # cfg.eval.perturb_action is the master switch: False always forces "none" no
+    # matter what mode core/integrators/base.py's PERTURBATION is set to; True lets
+    # that string pick one of the 4 -- rollout() itself takes no perturbation
+    # argument, so this has to mutate the module attribute it actually reads.
+    if not cfg.eval.perturb_action:
+        integrator_base.PERTURBATION = "none"
+    print(f"perturbation: {integrator_base.PERTURBATION!r}  (cfg.eval.perturb_action={cfg.eval.perturb_action})")
+
     out_dir = Path("output/renders")
     out_dir.mkdir(parents=True, exist_ok=True)
     # named after the checkpoint (not cfg.name) so a render is traceable back to the
@@ -210,7 +225,7 @@ def main():
     with torch.no_grad():
         for t in range(n):
             a = actions[t].unsqueeze(0)
-            states = integrator.rollout(model, s, a, dt_col, n_sub, cfg.eval.perturb_action)  # (1+n_sub, state_dim)
+            states = integrator.rollout(model, s, a, dt_col, n_sub)  # (1+n_sub, state_dim); mode set in core/integrators/base.py
             pred_obs.extend(x.squeeze(0) for x in states[1:])  # states[0] == s, already have it
             s = states[-1]
     pred_obs = torch.stack(pred_obs)  # 1 + n*n_sub states (vs. true_obs's 1 + n)
@@ -236,10 +251,16 @@ def main():
         Image.fromarray(np.concatenate([true_frames[k // n_sub], pred_frames[k]], axis=1))
         for k in range(len(pred_frames))
     ]
+    # burn the perturbation mode onto every frame, top-right -- makes a saved gif
+    # self-documenting instead of needing a separate file to remember what ran
+    for img in combined:
+        ImageDraw.Draw(img).text((img.width - 4, 4), integrator_base.PERTURBATION, fill=(255, 255, 255), anchor="ra")
+
     combined[0].save(
         out_gif, save_all=True, append_images=combined[1:], duration=int(1000 / FPS), loop=0
     )
-    print(f"saved {out_gif}  ({len(combined)} frames, left=true (every {n_sub}th frame) right=model (every baby-step))")
+    print(f"saved {out_gif}  ({len(combined)} frames, left=true (every {n_sub}th frame) right=model (every baby-step))"
+          f"  perturbation={integrator_base.PERTURBATION!r}")
 
 
 if __name__ == "__main__":
