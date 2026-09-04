@@ -9,6 +9,7 @@ write a class and add one decorator line -- nothing else needs to change.
 
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING, Any, Dict, Generic, Type, TypeVar
 
 # These are only used in type annotations below, never at runtime -- a real
@@ -49,10 +50,32 @@ class Registry(Generic[T]):
         return deco
 
     def build(self, name: str, **kwargs: Any) -> T:
-        print(f"Building {self.kind} '{name}' with args: {kwargs}")
         if name not in self._items:
             raise KeyError(f"unknown {self.kind} '{name}'. available: {self.names()}")
-        return self._items[name](**kwargs)
+        cls = self._items[name]
+
+        # Tolerant construction: a config carrying a param left over from a different
+        # dataset/model/trainer/integrator (e.g. copy-pasted between configs) shouldn't
+        # crash the whole run -- drop what `cls`'s constructor doesn't accept and warn,
+        # instead of a bare TypeError. inspect.signature(cls) (the class, not cls.__init__)
+        # is what correctly reports "()" for a class with no __init__ of its own -- going
+        # through cls.__init__ directly reports the misleading inherited "(*args, **kwargs)"
+        # from object.__init__, which would silently let stray kwargs through here only for
+        # them to blow up later at the real object.__init__ call.
+        params = inspect.signature(cls).parameters
+        accepts_var_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        if accepts_var_kwargs:
+            used_kwargs, dropped = kwargs, {}
+        else:
+            used_kwargs = {k: v for k, v in kwargs.items() if k in params}
+            dropped = {k: v for k, v in kwargs.items() if k not in params}
+
+        if dropped:
+            print(f"WARNING: {self.kind} '{name}' ({cls.__name__}) doesn't accept {sorted(dropped)} -- "
+                  f"ignoring (check your config for stray params copied from a different {self.kind})")
+
+        print(f"Building {self.kind} '{name}' with args: {used_kwargs}")
+        return cls(**used_kwargs)
 
     def names(self):
         return sorted(self._items)

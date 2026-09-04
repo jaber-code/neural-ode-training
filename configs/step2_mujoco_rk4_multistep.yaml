@@ -4,7 +4,7 @@
 # No ground-truth dynamics exist for real data, so analytic_test_dts is left
 # empty (the sweep eval auto-skips); the integration self-consistency check
 # (convergence_*) still runs since it needs no ground truth.
-name: step2_mujoco_euler
+name: step2_mujoco_rk4_multistep
 seed: 0
 device: cpu
 
@@ -21,24 +21,32 @@ model:
     hidden: [256, 256]
 
 integrator:
-  name: euler
+  name: rk4
   params: {}
 
+trainer:
+  name: multi_step
+  params:
+    k: 5
+  
 train:
   n_sub: 8
   batch_size: 1024
-  epochs: 30
+  epochs: 40
   lr: 0.001
   weight_decay: 0.0
   grad_clip: 5.0
   val_frac: 0.1
-  scheduler: none
-  step_scheduler_params: {step_size: 10, gamma: 0.5} 
+  scheduler: step  # step, cosine, or none
+  step_scheduler_params: {step_size: 10, gamma: 0.5}
   cosine_scheduler_params: {T_max: 40, eta_min: 0.0}
   distributed: false   # true = multi-GPU DDP; launch with torchrun --nproc_per_node=N (see run.slurm.sh)
+  
 eval:
   convergence_dt: 0.008
   convergence_n_subs: [1, 2, 4, 8, 16]
   max_samples: 5000
+  perturb_action: True
 
-checkpoint: output/vfield_hopper_euler.pt
+
+checkpoint: output/vfield_hopper_rk4_3346697.pt

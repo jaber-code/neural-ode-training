@@ -25,9 +25,14 @@ train:
   batch_size: 128
   epochs: 30
   lr: 0.001
+  weight_decay: 0.0
   grad_clip: 5.0
   val_frac: 0.1
-
+  scheduler: none
+  step_scheduler_params: {step_size: 10, gamma: 0.5} 
+  cosine_scheduler_params: {T_max: 40, eta_min: 0.0}
+  distributed: false   # true = multi-GPU DDP; launch with torchrun --nproc_per_node=N (see run.slurm.sh)
+  
 eval:
   analytic_test_dts: [0.1, 0.15, 0.2, 0.3, 0.4]
   convergence_dt: 0.2

@@ -1,0 +1,72 @@
+# Step 3: Atari-Pong (https://huggingface.co/datasets/p-doom/atari-pong-dataset).
+#
+# STATUS: dataset.params.path below will trigger a real download (via
+# AtariPongDataset._ensure_downloaded) the first time this is built -- good
+# enough to smoke-test the download on its own by just running this config.
+# Everything after that download is still unresolved:
+#   - AtariPongDataset's actual loading (core/datasets/atari_pong.py) is still
+#     the MuJoCo .npz/.hdf5 scaffold, not real ArrayRecord parsing -- it will
+#     fail loudly right after the download succeeds, on purpose (see that
+#     file's module docstring).
+#   - model/integrator below are CHANGE_ME on purpose: states here are pixel
+#     frames, not an 11-dim vector, so this needs a CNN (no such model class
+#     exists yet), and it's still an open question whether the ODE-integrator
+#     framing (Euler/RK4/midpoint sub-stepping a continuous dt) even applies
+#     to Atari's fixed frame-skip the way it does to Hopper's real physics.
+#   - trainer/train below are copied from the step2 defaults as placeholders,
+#     not a considered choice -- dataset episode/windowing structure isn't
+#     nailed down yet either.
+# UPDATE: model is now core/models/cnn.py's VectorFieldCNN (conv encoder/decoder,
+# action injected via embedding, not concatenation -- see that file's docstring).
+# n_sub=4 is deliberate, not a placeholder: matches the standard Atari frame-skip,
+# so sub-stepping is trying to recover the same discarded-between-frames dynamics
+# this whole thesis is about for Hopper -- do NOT collapse this to n_sub=1.
+name: step3_atari_pong
+seed: 0
+device: cuda
+
+dataset:
+  name: atari_pong
+  params:
+    path: /fscratch/sjaber/atari   #/fscratch/sjaber/atari
+    dt: 1.0   # placeholder -- fixed frame-skip has no real continuous dt (see core/datasets/mujoco.py's docstring for the same situation with real logged data)
+
+model:
+  name: cnn
+  params:
+    num_actions: 6   # Pong's minimal Gym/ALE action set -- NOT yet confirmed against
+                      # this dataset's real actions (np.unique(actions) / labeled render)
+    embed_dim: 16
+    channels: [32, 64, 64]
+
+integrator:
+  name: euler   # open question: does sub-stepping a continuous field even apply here?
+  params: {}
+
+trainer:
+  name: single_step   # multi_step would refuse this dataset -- supports_windows is
+                       # still False (see core/datasets/atari_pong.py's module docstring);
+                       # switch once episode-boundary tracking is added there
+  params: {}
+
+train:
+  n_sub: 4
+  batch_size: 128
+  epochs: 40
+  lr: 0.001
+  weight_decay: 0.0
+  grad_clip: 5.0
+  val_frac: 0.1
+  scheduler: none             # none | step | cosine
+  step_scheduler_params: {step_size: 10, gamma: 0.5}
+  cosine_scheduler_params: {T_max: 40, eta_min: 0.0}
+  distributed: false   # true = multi-GPU DDP; launch with torchrun --nproc_per_node=N (see run.slurm.sh)
+
+eval:
+  analytic_test_dts: []
+  convergence_dt: null
+  convergence_n_subs: [1, 2, 4, 8, 16]
+  max_samples: 5000
+  perturb_action: True
+
+checkpoint: output/vfield_atari_pong.pt

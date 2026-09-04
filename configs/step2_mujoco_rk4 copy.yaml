@@ -6,7 +6,7 @@
 # (convergence_*) still runs since it needs no ground truth.
 name: step2_mujoco_euler
 seed: 0
-device: cpu
+device: cuda
 
 dataset:
   name: mujoco
@@ -23,14 +23,19 @@ model:
 integrator:
   name: rk4
   params: {}
-
+  
 train:
   n_sub: 8
   batch_size: 1024
   epochs: 30
   lr: 0.001
+  weight_decay: 0.0
   grad_clip: 5.0
   val_frac: 0.1
+  scheduler: none
+  step_scheduler_params: {step_size: 10, gamma: 0.5} 
+  cosine_scheduler_params: {T_max: 40, eta_min: 0.0}
+  distributed: false   # true = multi-GPU DDP; launch with torchrun --nproc_per_node=N (see run.slurm.sh)
 
 eval:
   convergence_dt: 0.008

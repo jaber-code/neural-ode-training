@@ -142,6 +142,7 @@ def main():
 
     duration_ms = max(1, int(1000 / max(1, args.fps)))
     imgs = []
+    print(f"actions, frame by frame (the gif plays these too fast to read):")
     for t in range(seq_len):
         img = Image.fromarray(frames[t], mode="RGB")
         draw = ImageDraw.Draw(img)
@@ -151,6 +152,7 @@ def main():
             text = f"{a}" if name is None else f"{a} {name}"
         else:
             text = "?"
+        print(f"  frame {t:3d}: {text}")
         draw.text((2, 2), text, fill=(255, 255, 255))
         imgs.append(img)
 
