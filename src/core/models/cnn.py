@@ -40,18 +40,21 @@ class VectorFieldCNN(nn.Module):
         num_actions: int = 6,     # Pong's minimal Gym/ALE action set -- confirm with np.unique(actions) on the real data
         embed_dim: int = 16,
         channels: Sequence[int] = (32, 64, 64),
+        kernel_size: int = 3,   # encoder conv kernel; must be odd (padding = kernel_size // 2 keeps stride-2 halving clean)
     ):
         super().__init__()
         h, w, c = frame_shape
         assert h * w * c == state_dim, f"frame_shape {frame_shape} doesn't match state_dim {state_dim}"
+        assert kernel_size % 2 == 1, f"kernel_size must be odd, got {kernel_size}"
         self.frame_shape = (h, w, c)
+        padding = kernel_size // 2
 
         self.action_embed = nn.Embedding(num_actions, embed_dim)
 
         enc_layers = []
         in_ch = c
         for out_ch in channels:
-            enc_layers += [nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=2, padding=1), nn.ReLU()]
+            enc_layers += [nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, stride=2, padding=padding), nn.ReLU()]
             in_ch = out_ch
         self.encoder = nn.Sequential(*enc_layers)
 
@@ -64,15 +67,19 @@ class VectorFieldCNN(nn.Module):
         # small conv -- NOT a flatten + Linear, which for a 64x11x11 map would need a
         # ~60M-parameter dense layer just to mix in a 16-dim embedding
         self.bottleneck = nn.Sequential(
-            nn.Conv2d(enc_channels + embed_dim, enc_channels, kernel_size=3, padding=1),
+            nn.Conv2d(enc_channels + embed_dim, enc_channels, kernel_size=kernel_size, padding=padding),
             nn.ReLU(),
         )
 
+        # transposed-conv kernel/padding chosen so output = 2*input regardless of kernel_size
+        # (kernel_size+1 is even -- divisible by stride=2, which also avoids checkerboard
+        # artifacts transposed convs are prone to with a kernel not divisible by stride)
+        dec_kernel_size = kernel_size + 1
         dec_channels = list(channels[::-1][1:]) + [c]  # mirror encoder, ending back at c channels
         dec_layers = []
         in_ch = channels[-1]
         for out_ch in dec_channels:
-            dec_layers.append(nn.ConvTranspose2d(in_ch, out_ch, kernel_size=4, stride=2, padding=1))
+            dec_layers.append(nn.ConvTranspose2d(in_ch, out_ch, kernel_size=dec_kernel_size, stride=2, padding=padding))
             if out_ch != c:  # no ReLU on the final layer -- a pixel delta can be negative
                 dec_layers.append(nn.ReLU())
             in_ch = out_ch
